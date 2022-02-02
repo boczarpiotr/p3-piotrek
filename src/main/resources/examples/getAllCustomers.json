@@ -1,0 +1,20 @@
+[
+    {
+        "firstname": "Piotrek",
+        "password": "password",
+        "wallet_id": null,
+        "customer_id": 1,
+        "login": "login",
+        "email": "mail@wp.pl",
+        "lastname": "Boczar"
+    },
+    {
+        "firstname": "Pawel",
+        "password": "password",
+        "wallet_id": null,
+        "customer_id": 2,
+        "login": "login2",
+        "email": "1mail@wp.pl",
+        "lastname": "test"
+    }
+]

@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="AllCustomers" format="json">
+      <types:shape format="weave" example="examples/selectAllFromCustomer-1.json"><![CDATA[%dw 2.0
+
+type AllCustomers = Array<{|  firstname: String,   password: String,   wallet_id: Null,   customer_id: Number {"typeId": "int"},   login: String,   email: String,   lastname: String|}> {"example": "[{\\\"firstname\\\":\\\"Piotrek\\\",\\\"password\\\":\\\"password\\\",\\\"wallet_id\\\":null,\\\"customer_id\\\":1,\\\"login\\\":\\\"login\\\",\\\"email\\\":\\\"mail@wp.pl\\\",\\\"lastname\\\":\\\"Boczar\\\"},{\\\"firstname\\\":\\\"Pawel\\\",\\\"password\\\":\\\"password\\\",\\\"wallet_id\\\":null,\\\"customer_id\\\":2,\\\"login\\\":\\\"login2\\\",\\\"email\\\":\\\"1mail@wp.pl\\\",\\\"lastname\\\":\\\"test\\\"}]"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#b4d46f6d-549a-4afc-b791-fda8bb7ab4cf">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="AllCustomers"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

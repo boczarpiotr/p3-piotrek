@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="4fa75364-16da-4e35-9d21-3d1db065b152" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="2c723673-41b1-477a-a7b0-0cd7a693129b" >
+		<db:my-sql-connection host="database-bankapp.cuedbbp8oddp.us-east-1.rds.amazonaws.com" port="3306" user="admin" password="revaturemuleoct2021" database="bank_app" />
+	</db:config>
+	<flow name="p3-loginFlow" doc:id="8e46ab57-6608-423e-9b51-742963a31a52" >
+		<http:listener doc:name="GET /customers/login" doc:id="a9cca424-758e-42d9-b15e-0118841a6e44" config-ref="HTTP_Listener_config" path="/customers/login"/>
+		<set-variable value="#[attributes.headers.login]" doc:name="Set Variable" doc:id="b7da4449-dd0f-467f-8e6a-6f061d569a76" variableName="login" />
+		<set-variable value="#[attributes.headers.password]" doc:name="Set Variable" doc:id="af928008-ea04-4f63-96b0-6f8462e851c1" variableName="password"/>
+		<db:select doc:name="Select" doc:id="d991b32d-4e94-4041-9560-9b66b92834d2" config-ref="Database_Config">
+			<db:sql ><![CDATA[select password from customer where login = :login]]></db:sql>
+			<db:input-parameters ><![CDATA[#[login: vars.login]]]></db:input-parameters>
+		</db:select>
+		<set-variable value="#[output application/json&#10;---&#10;payload.password[0]]" doc:name="Set Variable" doc:id="491dccb8-ee44-41a2-88eb-15dd06cd4bee" variableName="dbOutput"/>
+		<choice doc:name="Choice" doc:id="a8cd95d1-1b67-4bda-b334-0905df86fd57" >
+			<when expression="#[vars.dbOutput != null]">
+				<set-payload value='#["logging is possible with this login"]' doc:name="Set Payload" doc:id="3193c8b4-5ae5-4d45-9654-dd5eb73d5b7e" />
+				<choice doc:name="Choice" doc:id="439cb264-70fd-4222-8b88-bcbbefcbc470" >
+					<when expression="#[vars.password == vars.dbOutput]">
+						<set-payload doc:name="Set Payload" doc:id="0ab6a0a9-6150-4d33-a90c-6d61d4af0fca" value='#["Successfully performed logging for user: " ++ vars.login as String]'/>
+					</when>
+					<otherwise >
+						<set-payload value='#["Incorrect password, please try again."]' doc:name="Set Payload" doc:id="a2f405be-a430-499a-a5ec-633ada42e571" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<set-payload value='#[vars.login as String ++" : no such a login in DB, please register"]' doc:name="Set Payload" doc:id="41ac58e9-d394-4535-84c4-d429b643a1a9" />
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="c48fde6d-84f6-4663-a898-a4d0d4a81e47" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+	payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="p3-passwordResetFlow" doc:id="4609bcc0-fc0c-4e10-b0fd-0b3a31bf2282" >
+		<http:listener doc:name="GET /customers/resetPassword" doc:id="323f87ff-9d11-46ee-bbd3-b020797571c7" config-ref="HTTP_Listener_config" path="/customers/resetPassword"/>
+		<set-variable value="#[attributes.headers.login]" doc:name="Set Variable" doc:id="d0990b34-efed-4fcf-9177-74d811cd913c" variableName="login"/>
+		<set-variable value="#[attributes.headers.newPassword]" doc:name="Set Variable" doc:id="38c2e88a-c348-4fae-be7c-9b332dd73ceb" variableName="newPassword"/>
+		<db:select doc:name="Select" doc:id="847d5bd4-a668-440c-86cb-4378895064eb" config-ref="Database_Config">
+			<db:sql ><![CDATA[select login from customer where login = :login]]></db:sql>
+			<db:input-parameters ><![CDATA[#[login : attributes.headers.login]]]></db:input-parameters>
+		</db:select>
+		<set-variable value="#[payload.login[0]]" doc:name="Set Variable" doc:id="672ef1c7-d2b3-4f5f-bcca-bfa08702dc93" variableName="dbOutput"/>
+		<choice doc:name="Choice" doc:id="b6556e7d-464e-4715-a5a1-61202e0d8b14" >
+			<when expression="#[vars.dbOutput != null]">
+				<db:update doc:name="Update" doc:id="b24bc34d-f92a-42ec-bb6a-b3adc4b446ec" config-ref="Database_Config">
+			<db:sql><![CDATA[update customer set password = :newPassword where login = :login]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+newPassword : vars.newPassword,
+login : vars.login
+}]]]></db:input-parameters>
+		</db:update>
+				<set-payload value='#["Password has been successfully changed for login: " ++ vars.login as String]' doc:name="Set Payload" doc:id="46da7bc9-c0ca-4be8-a2bb-9e30d50f63d8" />
+			</when>
+			<otherwise >
+				<set-payload value='#["There is no user with login: " ++ vars.login as String]' doc:name="Set Payload" doc:id="90d5dd43-7c2c-43ee-a574-29fa9b2df8f1" />
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="6b16b1e2-8dd5-4cc6-8551-f3c9f5c9cd64" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="p3-registerFlow" doc:id="55567326-40a7-4810-8085-71037191e1bb" >
+		<http:listener doc:name="POST /customers/register" doc:id="9c99757e-a8fe-470a-9444-95c0e5e97b20" config-ref="HTTP_Listener_config" path="/customers/register"/>
+		<db:insert doc:name="Insert" doc:id="9a029846-e35c-4a83-8920-b7163f38880f" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into customer (firstname, lastname, password, email, login) values (:firstname, :lastname, :password, :email, :login)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	firstname: payload.firstname,
+	lastname: payload.lastname,
+	password: payload.password,
+	email: payload.email,
+	login: payload.login
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="c728e345-50cb-4024-82aa-6354a4e1f27c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+"Customer has been successfully added."
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="p3-getAllCustomersFlow" doc:id="291547f1-9a40-46fe-8bd9-09f7d625f389" >
+		<http:listener doc:name="GET /customers" doc:id="ceb58043-9117-46ef-b387-70dd78e087fd" config-ref="HTTP_Listener_config" path="/customers"/>
+		<db:select doc:name="Select" doc:id="e45930e8-dc5a-4dfe-80c0-a70aa31cccea" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from customer]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="41196dd7-6b90-44b3-bae6-a13ea3bccb98" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="p3-getCustomerByIdFlow" doc:id="edd77866-27a3-4229-b193-0db8940b3acb" >
+		<http:listener doc:name="GET /customers/{id}" doc:id="001b758f-90e4-449b-b770-3676cc52accd" config-ref="HTTP_Listener_config" path="/customers/{id}"/>
+		<db:select doc:name="Select" doc:id="c7149c20-4055-4ce5-809c-e7d4b1ef9ec9" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from customer where customer_id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[id : attributes.uriParams.id]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="c43dd339-8a64-4871-a182-1223f7a046b6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
